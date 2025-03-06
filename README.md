@@ -1,4 +1,3 @@
-Mein first Project
 My First Data Projects – A Journey into Data Science
 
 These are two of my first projects in which I worked extensively with real-world data. They not only allowed me to dive into signal processing and statistical analysis but also sparked my passion for data science from the very start.
