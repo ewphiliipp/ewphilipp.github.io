@@ -1,465 +1,93 @@
-%% Projekt 1
-
-% Elektrophysiologische Daten - Vorverarbeitung
-
-%% Refreshen
-clc, clear, close all
-
-load('Squat1.mat');
-
-%ROHDATEN
-
-figure('name', 'Rohdaten')
-
-% Linke Seite
-subplot(4,2,1)
-plot(data(:,1))
-title('M. Gastrocnemius medialis (links)')
-xlabel('Zeit (ms)')
-ylabel('Spannung (mV)')
-
-subplot(4,2,3)
-plot(data(:,2))
-title('M. Tibialis anterior (links)')
-xlabel('Zeit (ms)')
-ylabel('Spannung (mV)')
-
-subplot(4,2,5)
-plot(data(:,3))
-title('M. Biceps femoris (links)')
-xlabel('Zeit (ms)')
-ylabel('Spannung (mV)')
-
-subplot(4,2,7)
-plot(data(:,4))
-title('M. Rectus femoris (links)')
-xlabel('Zeit (ms)')
-ylabel('Spannung (mV)')
-
-% Rechte Seite
-subplot(4,2,2)
-plot(data(:,5))
-title('M. Gastrocnemius medialis (rechts)')
-xlabel('Zeit (ms)')
-ylabel('Spannung (mV)')
-
-subplot(4,2,4)
-plot(data(:,6))
-title('M. Tibialis anterior (rechts)')
-xlabel('Zeit (ms)')
-ylabel('Spannung (mV)')
-
-subplot(4,2,6)
-plot(data(:,7))
-title('M. Biceps femoris (rechts)')
-xlabel('Zeit (ms)')
-ylabel('Spannung (mV)')
-
-subplot(4,2,8)
-plot(data(:,8))
-title('M. Rectus femoris (rechts)')
-xlabel('Zeit (ms)')
-ylabel('Spannung (mV)')
-
-
-% Vollgleichrichtung
-data_abs = abs(data);
-
-% Plot zum grafischen Überprüfen
-figure('name', 'Vollgleichgerichtet')
-
-subplot_titles_left = {'M. Gastrocnemius medialis (links)', 'M. tibialis anterior (links)', ...
-    'M. Biceps femoris (links)', 'M. Rectus femoris (links)'};
-
-subplot_titles_right = {'M. Gastrocnemius medialis (rechts)', 'M. tibialis anterior (rechts)', ...
-    'M. Biceps femoris (rechts)', 'M. Rectus femoris (rechts)'};
-
-for muscle = 1 : 4
-    subplot(4,2,2*(muscle-1)+1) % Linker Subplot
-    plot(data_abs(:,muscle))
-    xlabel('Zeit (ms)')
-    ylabel('Spannung (mV)')
-    title(subplot_titles_left{muscle})
-
-    subplot(4,2,2*muscle) % Rechter Subplot
-    plot(data_abs(:,muscle+4))
-    xlabel('Zeit (ms)')
-    ylabel('Spannung (mV)')
-    title(subplot_titles_right{muscle})
-end
-
-% Digitales Filtern
-
-
-% Da Menschen keine Bewegungen erzeugen können, die sich oberhalb von 10 Hz abspielen, liegt es hier nahe,
-% einen Butterworth Filter 2ter Ordnung mit lowpass Eigenschaften & einer Cutoff Frequency von 10 Hz zu erstellen
-
-
-cutoff = 10;
-freq = 1000;
-order = 2;
-[b,a] = butter(order, cutoff/(freq/2), 'low');  % cutoff/(freq/2) = weil die Filterfrequenz in radians angegeben werden muss
-data_filt = filter(b,a, data_abs);
-% Plot zum grafischen Überprüfen
-figure('name', 'Gefiltert')
-
-for muscle = 1 : 4
-    subplot(4,2,2*(muscle-1)+1) % Linker Subplot
-    plot(data_filt(:,muscle))
-    xlabel('Zeit (ms)')
-    ylabel('Spannung (mV)')
-    title(subplot_titles_left{muscle})
-
-    subplot(4,2,2*muscle) % Rechter Subplot
-    plot(data_filt(:,muscle+4))
-    xlabel('Zeit (ms)')
-    ylabel('Spannung (mV)')
-    title(subplot_titles_right{muscle})
-end
-
-% Probiert unterschiedliche Cutoff Frequenzen aus und stellt die so gefilterten
-% Daten wieder grafisch dar.
-
-
-% 2c): Glätten
-% mittelwert von den gefilterten daten alle 100 frames = Datasmooth
-window_length = 100;
-data_smooth = movmean(data_filt, window_length);
-
-% Plot zum grafischen Überprüfen
-figure('name', 'Geglättet')
-
-for muscle = 1 : 4
-    subplot(4,2,2*(muscle-1)+1) % Linker Subplot
-    plot(data_smooth(:,muscle))
-    xlabel('Zeit (ms)')
-    ylabel('Spannung (mV)')
-    title(subplot_titles_left{muscle})
-
-    subplot(4,2,2*muscle) % Rechter Subplot
-    plot(data_smooth(:,muscle+4))
-    xlabel('Zeit (ms)')
-    ylabel('Spannung (mV)')
-    title(subplot_titles_right{muscle})
-end
-
-% Maximale aktivierung des Muskels um Zeitpunkt in der Bewegung zu analysieren
-% Peak von Rectus Femoris um auf tiefsten punkt der Kniebeuge schließen könnte.
-% maximale Aktivierung der Kniestrecker durch Dehnungs Verkürzungszyklus?
-%Zudem sind die Maxima auf beiden Seiten zu ca. demselben Zeitpunkt
-
-[pks, locs] = findpeaks(data_smooth(:,4), 'MinPeakDistance', 5000, 'MinPeakHeight', 0.02);
-
-
-figure('name', 'Peaks testen')
-subplot(2,1,1)
-title('Geglättete Daten (M. Rectus femoris (links))')
-hold('on')
-plot(data_smooth(:,4))
-ylim([0, 0.12]);
-xlabel('Zeit (ms)')
-ylabel('Spannung (mV)')
-line ([locs locs], [0 pks], 'color', 'r');
-
-[pks, max_akt] = findpeaks(data_smooth(:,3), 'MinPeakDistance', 5000, 'MinPeakHeight', 0.02);
-subplot(2,1,2) % Rechter Subplot
-title('Geglättete Daten (M. Bizeps femoris (links))')
-hold('on')
-plot(data_smooth(:,3))
-ylim([0, 0.12]);
-xlabel('Zeit (ms)')
-ylabel('Spannung (mV)')
-line ([max_akt max_akt], [0 pks], 'color', 'r');
-
-[pks, locs] = findpeaks(data_smooth(:,4), 'MinPeakDistance', 5000, 'MinPeakHeight', 0.02);
-
-
-figure('name', 'Peaks testen')
-subplot(2,1,1)
-title('Geglättete Daten (M. Rectus femoris (rechts))')
-hold('on')
-plot(data_smooth(:,8))
-ylim([0, 0.12]);
-xlabel('Zeit (ms)')
-ylabel('Spannung (mV)')
-line ([locs locs], [0 pks], 'color', 'r');
-
-[pks, max_akt] = findpeaks(data_smooth(:,7), 'MinPeakDistance', 5000, 'MinPeakHeight', 0.02);
-subplot(2,1,2) % Rechter Subplot
-title('Geglättete Daten (M. Bizeps femoris (rechts))')
-hold('on')
-plot(data_smooth(:,7))
-ylim([0, 0.12]);
-xlabel('Zeit (ms)')
-ylabel('Spannung (mV)')
-line ([max_akt max_akt], [0 pks], 'color', 'r');
-%Maximale Aktivierung der anderen Muskeln
-
-figure('name', 'Maxima')
-
-for muscle = 1 : 4
-  [pks, max_akt] = findpeaks(data_smooth(:,muscle), 'MinPeakDistance', 5000, 'MinPeakHeight', 0.02);
-    subplot(4,2,2*(muscle-1)+1) % Linker Subplot
-    hold('on')
-    plot(data_smooth(:,muscle))
-    line ([max_akt max_akt], [0 pks], 'color', 'r');
-    xlabel('Zeit (ms)')
-    ylabel('Spannung (mV)')
-    title(subplot_titles_left{muscle})
-
-    [pks, max_akt] = findpeaks(data_smooth(:,muscle+4), 'MinPeakDistance', 5000, 'MinPeakHeight', 0.02);
-    subplot(4,2,2*muscle) % Rechter Subplot
-    hold('on')
-    plot(data_smooth(:,muscle+4))
-    xlabel('Zeit (ms)')
-    ylabel('Spannung (mV)')
-    line ([max_akt max_akt], [0 pks], 'color', 'r');
-    title(subplot_titles_right{muscle})
-
-end
-
-% zur auswertung der Daten sind Mittelwerte Spitzenwerte und Standardabweichungen wichtige Parameter
-Max_Mean_Sd_integrale = zeros(8, 4);
-
-for muscles = 1 : 8
-  Max_Mean_Sd_integrale(muscles, 1) = max(data_filt(:, muscles));
-  Max_Mean_Sd_integrale(muscles, 2) = mean(data_filt(:, muscles));
-  Max_Mean_Sd_integrale(muscles, 3) = std(data_filt(:, muscles));
-  Max_Mean_Sd_integrale(muscles, 4) = trapz(data_filt(:, muscles));
-end
-
-Maximum = Max_Mean_Sd_integrale(:, 1);
-mittelwerte = Max_Mean_Sd_integrale(:, 2);
-stdabweichung = Max_Mean_Sd_integrale(:, 3);
-
-figure('name', 'Maximum')
-bar([Maximum(1:4), Maximum(5:8)])
-hold('on')
-ylabel('Spannung (mV)')
-xticklabels({'M. Gastrocnemius medialis', 'M. tibialis anterior', 'M. Bizeps Femoris', 'M. Rectus Femoris'})
-legend('Links', 'Rechts')
-title('Maximum')
-
-% Fehlerbalken hinzufügen
-x_errorbar = 1:4;
-m_errorbar = Maximum(1:4);
-s_errorbar = stdabweichung(1:4)';
-errorbar(x_errorbar, m_errorbar, s_errorbar, 'b')
-
-x_errorbar = 1:4;
-m_errorbar = Maximum(5:8);
-s_errorbar = stdabweichung(5:8)';
-errorbar(x_errorbar, m_errorbar, s_errorbar, 'r')
-
-
-
-integrale= Max_Mean_Sd_integrale(:,4);
-
-% Integrale in einer Abbildung plotten
-figure('name', 'Integrale')
-bar(integrale)
-hold('on')
-ylabel('Integral')
-xticklabels({'M. Gastrocnemius medialis (links)', 'M. tibialis anterior (links)', 'M. Bizeps Femoris (links)', 'M. Rectus Femoris (links)','M. Gastrocnemius medialis (rechts)', 'M. tibialis anterior (rechts)', 'M. Bizeps Femoris (rechts)', 'M. Rectus Femoris (rechts)'})
-title('Integral')
-
-
-
-Projekt 2
-
-clc, clear, close all
-
-
-pool_mittelwerte = zeros(8, 1);
-pool_maxima = zeros(8, 1);
-pool_stdabweichung = zeros(8, 1);
-
-for i = 1:5
-    filename = sprintf('Squat%d.mat', i);
-    load(filename);
-    data_abs = abs(data);
-    cutoff = 10;
-    freq = 1000;
-    order = 2;
-    [b, a] = butter(order, cutoff/(freq/2), 'low');
-    data_filt = filter(b, a, data_abs);
-
-    Max_Mean_Sd_integrale = zeros(8, 4);
-
-    for muscles = 1 : 8
-        Max_Mean_Sd_integrale(muscles, 1) = max(data_filt(:, muscles));
-        Max_Mean_Sd_integrale(muscles, 2) = mean(data_filt(:, muscles));
-        Max_Mean_Sd_integrale(muscles, 3) = std(data_filt(:, muscles));
-        Max_Mean_Sd_integrale(muscles, 4) = trapz(data_filt(:, muscles));
-    end
-
-    maxima = Max_Mean_Sd_integrale(:, 1);
-    mittelwerte = Max_Mean_Sd_integrale(:, 2);
-    stdabweichung = Max_Mean_Sd_integrale(:, 3);
-
-    % Addieren der Mittelwerte, Maximalwerte und Standardabweichungen zur gesamten Pooling-Variablen
-    pool_mittelwerte = pool_mittelwerte + mittelwerte;
-    pool_maxima = pool_maxima + maxima;
-    pool_stdabweichung = pool_stdabweichung + stdabweichung;
-end
-
-% Berechnung der gesamten Maximalwerte, Mittelwerte und Standardabweichungen über die Squat-Daten 1-5
-gesamt_maxima = pool_maxima / 5;
-gesamt_mittelwerte = pool_mittelwerte / 5;
-gesamt_stdabweichung = pool_stdabweichung / 5;
-
-% Plotten der gesamten Maximalwerte mit Fehlerbalken
-figure('name', 'Maximum')
-bar([gesamt_maxima(1:4), gesamt_maxima(5:8)])
-hold on
-ylabel('Spannung (mV)')
-ylim([0, 0.7]);
-xticklabels({'M. Gastrocnemius medialis', 'M. tibialis anterior', 'M. Bizeps Femoris', 'M. Rectus Femoris'})
-legend('Links', 'Rechts')
-title('Maximum')
-
-% Fehlerbalken hinzufügen
-x_errorbar = 1:4;
-m_errorbar = gesamt_maxima(1:4);
-s_errorbar = gesamt_stdabweichung(1:4)';
-errorbar(x_errorbar, m_errorbar, s_errorbar, 'b')
-
-x_errorbar = 1:4;
-m_errorbar = gesamt_maxima(5:8);
-s_errorbar = gesamt_stdabweichung(5:8)';
-errorbar(x_errorbar, m_errorbar, s_errorbar, 'r')
-
-pool_mittelwerte2 = zeros(8, 1);
-pool_maxima2 = zeros(8, 1);
-pool_stdabweichung2 = zeros(8, 1);
-
-for i = 6:10
-    filename = sprintf('Squat%d.mat', i);
-    load(filename);
-    data_abs = abs(data);
-    cutoff = 10;
-    freq = 1000;
-    order = 2;
-    [b, a] = butter(order, cutoff/(freq/2), 'low');
-    data_filt = filter(b, a, data_abs);
-
-    Max_Mean_Sd_integrale = zeros(8, 4);
-
-    for muscles = 1 : 8
-        Max_Mean_Sd_integrale(muscles, 1) = max(data_filt(:, muscles));
-        Max_Mean_Sd_integrale(muscles, 2) = mean(data_filt(:, muscles));
-        Max_Mean_Sd_integrale(muscles, 3) = std(data_filt(:, muscles));
-        Max_Mean_Sd_integrale(muscles, 4) = trapz(data_filt(:, muscles));
-    end
-
-    maxima = Max_Mean_Sd_integrale(:, 1);
-    mittelwerte = Max_Mean_Sd_integrale(:, 2);
-    stdabweichung = Max_Mean_Sd_integrale(:, 3);
-
-    % Addieren der Mittelwerte, Maximalwerte und Standardabweichungen zur gesamten Pooling-Variablen
-    pool_mittelwerte2 = pool_mittelwerte2 + mittelwerte;
-    pool_maxima2 = pool_maxima2 + maxima;
-    pool_stdabweichung2 = pool_stdabweichung2 + stdabweichung;
-end
-
-% Berechnung der gesamten Maximalwerte, Mittelwerte und Standardabweichungen über die Squat-Daten 6-10
-gesamt_maxima2 = pool_maxima2 / 5;
-gesamt_mittelwerte2 = pool_mittelwerte2 / 5;
-gesamt_stdabweichung2 = pool_stdabweichung2 / 5;
-
-% Plotten der gesamten Maximalwerte mit Fehlerbalken
-figure('name', 'Maximum')
-bar([gesamt_maxima2(1:4), gesamt_maxima2(5:8)])
-hold on
-ylabel('Spannung (mV)')
-ylim([0, 0.7]);
-xticklabels({'M. Gluteus maximus', 'M. tibialis anterior', 'M. Bizeps Femoris', 'M. Rectus Femoris'})
-legend('Links', 'Rechts')
-title('Maximum')
-
-% Fehlerbalken hinzufügen
-x_errorbar = 1:4;
-m_errorbar = gesamt_maxima2(1:4);
-s_errorbar = gesamt_stdabweichung2(1:4)';
-errorbar(x_errorbar, m_errorbar, s_errorbar, 'b')
-
-x_errorbar = 1:4;
-m_errorbar = gesamt_maxima2(5:8);
-s_errorbar = gesamt_stdabweichung2(5:8)';
-errorbar(x_errorbar, m_errorbar, s_errorbar, 'r')
-
-
-left_pool_maxima = zeros(2, 10);
-right_pool_maxima = zeros(2, 10);
-
-for i = 1:10
-    filename = sprintf('Squat%d.mat', i);
-    load(filename);
-    data_abs = abs(data);
-    cutoff = 10;
-    freq = 1000;
-    order = 2;
-    [b, a] = butter(order, cutoff/(freq/2), 'low');
-    data_filt = filter(b, a, data_abs);
-
-    Max_Mean = zeros(8, 2);
-
-    for muscles = 1 : 8
-        Max_Mean(muscles, 1) = max(data_filt(:, muscles));
-        Max_Mean(muscles, 2) = mean(data_filt(:, muscles));
-    end
-
-    left_maxima = Max_Mean(:, 1);
-    right_maxima = Max_Mean(:, 2);
-
-    % Hinzufügen der Maximalwerte zum Pooling-Vektor für linke Muskulatur
-    left_pool_maxima(:, i) = left_maxima(3:4);
-
-    % Hinzufügen der Maximalwerte zum Pooling-Vektor für rechte Muskulatur
-    right_pool_maxima(:, i) = right_maxima(7:8);
-end
-
-% Berechnung der Korrelationskoeffizienten zwischen den Maximalwerten der linken Muskeln
-left_correlation_coefficient = corrcoef(left_pool_maxima(1, :), left_pool_maxima(2, :));
-left_r = left_correlation_coefficient(1, 2);
-
-% Berechnung der Regressionsgeraden für linke Muskeln
-left_X = left_pool_maxima(1, :)';
-left_Y = left_pool_maxima(2, :)';
-left_coeffs = polyfit(left_X, left_Y, 1);
-left_regression_line = polyval(left_coeffs, left_X);
-
-% Plot der linearen Korrelation mit Regressionsgerade für linke Muskeln
-figure('name', 'Lineare Korrelation und Regressionsgerade für linke Muskeln')
-scatter(left_pool_maxima(1, :), left_pool_maxima(2, :))
-hold on
-plot(left_X, left_regression_line, 'r-', 'LineWidth', 2)
-xlabel('Maximalwerte M. Bizeps Femoris (links)')
-ylabel('Maximalwerte M. Rectus Femoris (links)')
-title('Lineare Korrelation und Regressionsgerade für linke Muskeln')
-text(max(left_pool_maxima(1, :)), max(left_pool_maxima(2, :)), sprintf('Korrelationskoeffizient r = %.2f', left_r))
-xlim([0, 0.3]) % Festlegen der y-Achsenbegrenzung
-
-% Berechnung der Korrelationskoeffizienten zwischen den Maximalwerten der rechten Muskeln
-right_correlation_coefficient = corrcoef(right_pool_maxima(1, :), right_pool_maxima(2, :));
-right_r = right_correlation_coefficient(1, 2);
-
-% Berechnung der Regressionsgeraden für rechte Muskeln
-right_X = right_pool_maxima(1, :)';
-right_Y = right_pool_maxima(2, :)';
-right_coeffs = polyfit(right_X, right_Y, 1);
-right_regression_line = polyval(right_coeffs, right_X);
-
-% Plot der linearen Korrelation mit Regressionsgerade für rechte Muskeln
-figure('name', 'Lineare Korrelation und Regressionsgerade für rechte Muskeln')
-scatter(right_pool_maxima(1, :), right_pool_maxima(2, :))
-hold on
-plot(right_X, right_regression_line, 'r-', 'LineWidth', 2)
-xlabel('Maximalwerte M. Bizeps Femoris (rechts)')
-ylabel('Maximalwerte M. Rectus Femoris (rechts)')
-title('Lineare Korrelation und Regressionsgerade für rechte Muskeln')
-text(max(right_pool_maxima(1, :)), max(right_pool_maxima(2, :)), sprintf('Korrelationskoeffizient r = %.2f', right_r))
-
+Mein first Project
+My First Data Projects – A Journey into Data Science
+
+These are two of my first projects in which I worked extensively with real-world data. They not only allowed me to dive into signal processing and statistical analysis but also sparked my passion for data science from the very start.
+
+Project 1: Electrophysiological Data Preprocessing for EMG Signals
+
+This project demonstrates the step-by-step processing of electromyographic (EMG) data recorded during a squat exercise. The code shows how to transform raw EMG signals into meaningful information.
+
+Overview of the Code:
+
+1. Initialization and Data Loading:
+   - The workspace is cleared using `clc, clear, close all`.
+   - Data is loaded from a file (`Squat1.mat`), which contains raw EMG data from eight channels corresponding to muscles on the left and right sides.
+
+2. **Plotting the Raw Data:**
+   - Two figures are created:
+     - Raw Data Figure:  
+       The data is plotted in a 4×2 grid of subplots. The left column contains signals from the left side (e.g., *M. Gastrocnemius medialis (left)*) and the right column contains the corresponding signals from the right side.
+     - Each subplot includes a title and axis labels (Time in ms, Voltage in mV).
+
+3. Full-Wave Rectification:
+   - The raw data is converted to its absolute values using `abs(data)`. This step ensures that all the signal peaks become visible irrespective of the polarity.
+   - A new figure displays the rectified data for visual verification.
+
+4. Digital Filtering:
+   - A 2nd-order Butterworth lowpass filter is applied. Given that human movement signals rarely exceed 10 Hz, the filter has a cutoff frequency of 10 Hz. The sample frequency is set to 1000 Hz.
+   - The filter coefficients are computed with:  
+     ```matlab
+     [b,a] = butter(order, cutoff/(freq/2), 'low');
+     ```
+     and applied using `filter(b,a,data_abs)`.
+   - The filtered data is plotted in another figure.
+
+5. Data Smoothing:
+   - A moving average is computed using `movmean(data_filt, window_length)` with a window length of 100 frames to smooth the data.
+   - A separate figure shows the smoothed data.
+
+6. Peak Detection:
+   - Using MATLAB’s `findpeaks`, the code detects peaks in the smoothed data to identify moments of maximum muscle activation.
+   - These peaks are overlaid on the plots (using red lines) for muscles like M. Rectus femoris and M. Biceps femoris.
+   - A loop then plots the peaks for all muscles, allowing for side-by-side comparison of activation patterns.
+
+7. Statistical Analysis:
+   - Key statistical parameters (maximum, mean, standard deviation, and the integral via `trapz`) are computed for each muscle.
+   - The results are pooled over different squat trials (Squat1 to Squat5, and Squat6 to Squat10) by summing the values and then dividing by the number of trials.
+   - These aggregated results are visualized using bar charts with error bars representing the standard deviation.
+
+Why It Matters:
+This project illustrates how to preprocess raw EMG data—from initial visualization and rectification, through filtering and smoothing, to peak detection and statistical analysis. It provides a solid foundation for understanding muscle activation patterns during exercise and showcases a complete workflow from raw signal to actionable insights.
+
+Project 2: Statistical Analysis and Correlation of Squat Data
+
+In the second project, I extended my data analysis skills by performing statistical evaluations and correlation analyses on squat data. This project uses multiple datasets (from Squat1.mat to Squat10.mat) to derive and compare performance metrics.
+
+Overview of the Code:
+
+1. Pooling Statistical Parameters:
+   - For each squat file (first Squat1 to Squat5), the code:
+     - Loads the data and computes its absolute value.
+     - Applies the same Butterworth lowpass filter as in Project 1.
+     - For each of the 8 channels, calculates:
+       - Maximum value (`max`)
+       - Mean (`mean`)
+       - Standard deviation (`std`)
+       - Integral (using `trapz`)
+     - These values are stored in a matrix and then summed into pooling variables.
+   - After processing the files, the pooled values are divided by the number of files (5) to obtain overall averages for each muscle.
+
+2. Visualization of Pooled Data:
+   - Bar charts are created to display the aggregated maximum values for both left and right muscles.
+   - Error bars based on the standard deviation are added to the plots.
+   - A separate plot shows the integral of the signals for all muscles.
+
+3. Correlation and Regression Analysis:
+   - For each file (Squat1 to Squat10), the maximum and mean values are recalculated for each muscle.
+   - For selected muscle groups on the left and right sides (e.g., M. Biceps femoris vs. M. Rectus femoris), the code:
+     - Pools the data into separate matrices.
+     - Computes the correlation coefficient using `corrcoef`.
+     - Calculates a linear regression line via `polyfit` and `polyval`.
+   - The correlation and regression are visualized using scatter plots with the regression line overlaid. The correlation coefficient is also displayed on the plots.
+
+Why It Matters:
+This project provides a comprehensive statistical analysis of muscle performance during squat exercises. By pooling data from multiple trials, calculating descriptive statistics, and performing correlation and regression analyses, I was able to evaluate the consistency and interdependence of muscle activation. These insights can help in understanding muscle coordination and overall performance in functional movements.
+
+Final Thoughts
+
+These two projects represent my very first forays into working with real-world data—specifically, electrophysiological signals and performance metrics from exercise. Through these projects, I not only learned how to process and analyze complex datasets but also fell in love with the potential of data science to uncover meaningful insights. Whether you're a recruiter, a fellow data enthusiast, or someone looking to collaborate, I invite you to explore my work further. 
+
+Enjoy browsing through my projects—and perhaps consider hiring me for your next data challenge!
 
 
 
