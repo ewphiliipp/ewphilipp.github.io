@@ -15,12 +15,12 @@ Overview of the Code:
 2. **Plotting the Raw Data:**
    - Two figures are created:
      - Raw Data Figure:  
-       The data is plotted in a 4×2 grid of subplots. The left column contains signals from the left side (e.g., *M. Gastrocnemius medialis (left)*) and the right column contains the corresponding signals from the right side.
+       The data is plotted in a 4×2 grid of subplots. The left column contains signals from the left side (e.g., *M. Gastrocnemius medialis (left)* (Raw_data.png)) and the right column contains the corresponding signals from the right side.
      - Each subplot includes a title and axis labels (Time in ms, Voltage in mV).
 
 3. Full-Wave Rectification:
    - The raw data is converted to its absolute values using `abs(data)`. This step ensures that all the signal peaks become visible irrespective of the polarity.
-   - A new figure displays the rectified data for visual verification.
+   - A new figure displays the rectified data for visual verification. (Abs_data.png)
 
 4. Digital Filtering:
    - A 2nd-order Butterworth lowpass filter is applied. Given that human movement signals rarely exceed 10 Hz, the filter has a cutoff frequency of 10 Hz. The sample frequency is set to 1000 Hz.
@@ -30,15 +30,16 @@ Overview of the Code:
      ```
      and applied using `filter(b,a,data_abs)`.
    - The filtered data is plotted in another figure.
+   - (Filtered_data.png)
 
 5. Data Smoothing:
    - A moving average is computed using `movmean(data_filt, window_length)` with a window length of 100 frames to smooth the data.
-   - A separate figure shows the smoothed data.
+   - A separate figure shows the smoothed data. (Smoothed_data.png)
 
 6. Peak Detection:
    - Using MATLAB’s `findpeaks`, the code detects peaks in the smoothed data to identify moments of maximum muscle activation.
    - These peaks are overlaid on the plots (using red lines) for muscles like M. Rectus femoris and M. Biceps femoris.
-   - A loop then plots the peaks for all muscles, allowing for side-by-side comparison of activation patterns.
+   - A loop then plots the peaks for all muscles, allowing for side-by-side comparison of activation patterns. (Peak_test.png)
 
 7. Statistical Analysis:
    - Key statistical parameters (maximum, mean, standard deviation, and the integral via `trapz`) are computed for each muscle.
@@ -64,10 +65,10 @@ Overview of the Code:
        - Standard deviation (`std`)
        - Integral (using `trapz`)
      - These values are stored in a matrix and then summed into pooling variables.
-   - After processing the files, the pooled values are divided by the number of files (5) to obtain overall averages for each muscle.
+   - After processing the files, the pooled values are divided by the number of files (5) to obtain overall averages for each muscle. 
 
 2. Visualization of Pooled Data:
-   - Bar charts are created to display the aggregated maximum values for both left and right muscles.
+   - Bar charts are created to display the aggregated maximum values for both left and right muscles. (Maximum_activation.png)
    - Error bars based on the standard deviation are added to the plots.
    - A separate plot shows the integral of the signals for all muscles.
 
@@ -77,7 +78,7 @@ Overview of the Code:
      - Pools the data into separate matrices.
      - Computes the correlation coefficient using `corrcoef`.
      - Calculates a linear regression line via `polyfit` and `polyval`.
-   - The correlation and regression are visualized using scatter plots with the regression line overlaid. The correlation coefficient is also displayed on the plots.
+   - The correlation and regression are visualized using scatter plots with the regression line overlaid. The correlation coefficient is also displayed on the plots. (kor_left.png /kor_right.png)
 
 Why It Matters:
 This project provides a comprehensive statistical analysis of muscle performance during squat exercises. By pooling data from multiple trials, calculating descriptive statistics, and performing correlation and regression analyses, I was able to evaluate the consistency and interdependence of muscle activation. These insights can help in understanding muscle coordination and overall performance in functional movements.
